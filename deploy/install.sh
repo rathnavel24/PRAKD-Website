@@ -25,10 +25,19 @@ if [ ! -x backend/.venv/bin/python ]; then
   sudo -u rat python3 -m venv backend/.venv
 fi
 sudo -u rat backend/.venv/bin/python -m pip install -q --disable-pip-version-check -r backend/requirements.txt
-install -m 644 deploy/prakd-backend.service /etc/systemd/system/prakd-backend.service
-systemctl daemon-reload
-systemctl enable prakd-backend >/dev/null 2>&1
-systemctl restart prakd-backend
+
+# 2b. run it under Supervisor (the old systemd unit is retired so the port is free)
+command -v supervisorctl >/dev/null || apt-get install -y supervisor
+systemctl enable --now supervisor >/dev/null 2>&1
+if [ -f /etc/systemd/system/prakd-backend.service ]; then
+  systemctl disable --now prakd-backend >/dev/null 2>&1 || true
+  rm -f /etc/systemd/system/prakd-backend.service
+  systemctl daemon-reload
+fi
+install -m 644 deploy/prakd-backend.supervisor.conf /etc/supervisor/conf.d/prakd-backend.conf
+supervisorctl reread >/dev/null
+supervisorctl update >/dev/null
+supervisorctl restart prakd-backend >/dev/null
 
 # 3. nginx: swap the maintenance page for the site (roll back if the config is bad)
 install -m 644 deploy/prakd.conf /etc/nginx/sites-available/prakd.conf
@@ -40,8 +49,8 @@ if ! nginx -t; then
 fi
 systemctl reload nginx
 
-sleep 3
+sleep 5
 echo "--- checks:"
 echo "site:    $(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1/)  (want 200)"
 echo "api:     $(curl -s http://127.0.0.1/api/health)  (want {\"status\":\"ok\"})"
-echo "backend: $(systemctl is-active prakd-backend)"
+echo "backend: $(supervisorctl status prakd-backend)  (want RUNNING)"
