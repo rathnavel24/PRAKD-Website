@@ -14,9 +14,9 @@ if [ "${1:-}" = maintenance ]; then
 fi
 
 # 1. site files
-install -d /var/www/prakd
-cp -r site/. /var/www/prakd/
-chmod -R a+rX /var/www/prakd
+install -d /var/www/html/prakd
+cp -r site/. /var/www/html/prakd/
+chmod -R a+rX /var/www/html/prakd
 
 # 2. enquiry backend (FastAPI in its own Python environment, owned by rat)
 install -d -o rat -g rat backend/data
