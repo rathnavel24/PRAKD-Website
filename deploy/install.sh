@@ -18,8 +18,13 @@ install -d /var/www/prakd
 cp -r site/. /var/www/prakd/
 chmod -R a+rX /var/www/prakd
 
-# 2. enquiry backend
+# 2. enquiry backend (FastAPI in its own Python environment, owned by rat)
 install -d -o rat -g rat backend/data
+if [ ! -x backend/.venv/bin/python ]; then
+  python3 -c 'import ensurepip' 2>/dev/null || apt-get install -y python3-venv
+  sudo -u rat python3 -m venv backend/.venv
+fi
+sudo -u rat backend/.venv/bin/python -m pip install -q --disable-pip-version-check -r backend/requirements.txt
 install -m 644 deploy/prakd-backend.service /etc/systemd/system/prakd-backend.service
 systemctl daemon-reload
 systemctl enable prakd-backend >/dev/null 2>&1
@@ -35,7 +40,7 @@ if ! nginx -t; then
 fi
 systemctl reload nginx
 
-sleep 1
+sleep 3
 echo "--- checks:"
 echo "site:    $(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1/)  (want 200)"
 echo "api:     $(curl -s http://127.0.0.1/api/health)  (want {\"status\":\"ok\"})"

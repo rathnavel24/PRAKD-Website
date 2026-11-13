@@ -1,12 +1,12 @@
 [Unit]
-Description=Prakd enquiry backend (Node)
+Description=Prakd enquiry backend (FastAPI)
 After=network.target
 
 [Service]
 User=rat
 WorkingDirectory=/home/rat/apps/prakd-site/backend
-ExecStart=/usr/bin/node --disable-warning=ExperimentalWarning server.mjs
-Environment=HOST=127.0.0.1 PORT=8788
+ExecStart=/home/rat/apps/prakd-site/backend/.venv/bin/uvicorn main:app --host 127.0.0.1 --port 8788 --no-access-log
+Environment=PYTHONUNBUFFERED=1 PYTHONDONTWRITEBYTECODE=1
 # Optional Telegram alert per enquiry: TELEGRAM_CHAT and TELEGRAM_TOKEN_FILE go in deploy/local.env (not in git)
 EnvironmentFile=-/home/rat/apps/prakd-site/deploy/local.env
 Restart=always

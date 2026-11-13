@@ -1,10 +1,18 @@
 #!/bin/bash
 # Show enquiries from the prakd.in contact form, newest first.  Usage: bash ~/apps/prakd-site/read-enquiries.sh [count]
-cd "$(dirname "$0")/backend" && node --disable-warning=ExperimentalWarning -e '
-const { DatabaseSync } = require("node:sqlite");
-const rows = new DatabaseSync("data/enquiries.db", { readOnly: true })
-  .prepare("select created_at,name,email,company,topics,message from enquiries order by created_at desc limit ?").all(Number(process.argv[1] || 20));
-const ist = t => new Date(t).toLocaleString("en-IN", { timeZone: "Asia/Kolkata", dateStyle: "medium", timeStyle: "short", hour12: false }) + " IST";
-if (!rows.length) console.log("No enquiries yet.");
-for (const r of rows) console.log(`\n${ist(r.created_at)}  ${r.name} <${r.email}>${r.company ? "  (" + r.company + ")" : ""}\n  topics: ${JSON.parse(r.topics).join(", ") || "-"}\n  ${(r.message || "").replace(/\n/g, "\n  ")}`);
-' "${1:-20}"
+cd "$(dirname "$0")/backend" && python3 - "${1:-20}" <<'PY'
+import json, sqlite3, sys
+from datetime import datetime
+from zoneinfo import ZoneInfo
+
+db = sqlite3.connect("file:data/enquiries.db?mode=ro", uri=True)
+rows = db.execute("select created_at,name,email,company,topics,message from enquiries order by created_at desc limit ?",
+                  (int(sys.argv[1]),)).fetchall()
+if not rows:
+    print("No enquiries yet.")
+for created, name, email, company, topics, message in rows:
+    when = datetime.fromisoformat(created.replace("Z", "+00:00")).astimezone(ZoneInfo("Asia/Kolkata"))
+    print(f"\n{when:%d %b %Y, %H:%M} IST  {name} <{email}>" + (f"  ({company})" if company else ""))
+    print(f"  topics: {', '.join(json.loads(topics)) or '-'}")
+    print("  " + (message or "").replace("\n", "\n  "))
+PY
