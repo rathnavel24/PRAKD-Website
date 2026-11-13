@@ -1,0 +1,21 @@
+[Unit]
+Description=Prakd enquiry backend (Node)
+After=network.target
+
+[Service]
+User=rat
+WorkingDirectory=/home/rat/apps/prakd-site/backend
+ExecStart=/usr/bin/node --disable-warning=ExperimentalWarning server.mjs
+Environment=HOST=127.0.0.1 PORT=8788
+# Optional Telegram alert per enquiry: TELEGRAM_CHAT and TELEGRAM_TOKEN_FILE go in deploy/local.env (not in git)
+EnvironmentFile=-/home/rat/apps/prakd-site/deploy/local.env
+Restart=always
+RestartSec=3
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=/home/rat/apps/prakd-site/backend/data
+
+[Install]
+WantedBy=multi-user.target
